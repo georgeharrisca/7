@@ -10,16 +10,26 @@
       reader.onload = function(event) {
         const parser = new DOMParser();
         const xmlDoc = parser.parseFromString(event.target.result, "application/xml");
-        
-        // Step 1: Find the <part-list> element
-        const partListElement = xmlDoc.getElementsByTagName('part-list')[0];
-        
-        // Step 2: Create a new document and copy all content up to and including <part-list>
+
+        // Step 1: Create a new document, including everything before <part-list>
         let newDoc = document.implementation.createDocument(null, 'score-partwise');
         let root = newDoc.documentElement;
 
-        // Step 3: Copy all elements before and including <part-list>
+        // Step 2: Get the first two lines (XML declaration and doctype) and copy them
+        const originalDoc = event.target.result;
+        const lines = originalDoc.split('\n');
+        const header = lines.slice(0, lines.indexOf('<part-list>') + 1).join('\n'); // Everything before <part-list>
+
+        // Create a new Blob with the header content and include it in the new document
+        const headerBlob = new Blob([header], { type: 'application/xml' });
+        const headerLink = document.createElement('a');
+        headerLink.href = URL.createObjectURL(headerBlob);
+        
+        // Step 3: Parse the document content from <part-list> onward
+        const partListElement = xmlDoc.getElementsByTagName('part-list')[0];
         let child = xmlDoc.documentElement.firstChild;
+        
+        // Copy everything from the original document into the new XML file
         while (child) {
           root.appendChild(child.cloneNode(true));
           if (child === partListElement) {
@@ -52,15 +62,15 @@
           }
         }
 
-        // Step 7: Add the closing </score-partwise> tag
-        // (This is automatically handled by the XML structure since it's the root element)
-
-        // Step 8: Serialize the new document into a string
+        // Step 7: Serialize the new document into a string
         const serializer = new XMLSerializer();
         const xmlString = serializer.serializeToString(newDoc);
-        
+
+        // Combine header and content
+        const finalXML = header + xmlString;
+
         // Create a blob and generate a download link for the new file
-        const blob = new Blob([xmlString], { type: 'application/xml' });
+        const blob = new Blob([finalXML], { type: 'application/xml' });
         const link = document.createElement('a');
         link.href = URL.createObjectURL(blob);
         link.download = 'part_1_extracted.xml';
