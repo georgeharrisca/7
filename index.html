@@ -8,68 +8,27 @@
     function parseXML(file) {
       const reader = new FileReader();
       reader.onload = function(event) {
-        const parser = new DOMParser();
-        const xmlDoc = parser.parseFromString(event.target.result, "application/xml");
+        // Get the raw file content as a string
+        const originalContent = event.target.result;
 
-        // Step 1: Create a new document, including everything before <part-list>
-        let newDoc = document.implementation.createDocument(null, 'score-partwise');
-        let root = newDoc.documentElement;
+        // Step 1: Extract everything up to and including <part-list>
+        const partListStartIndex = originalContent.indexOf('<part-list>');
+        const headerContent = originalContent.substring(0, partListStartIndex + '<part-list>'.length);
 
-        // Step 2: Get the first two lines (XML declaration and doctype) and copy them
-        const originalDoc = event.target.result;
-        const lines = originalDoc.split('\n');
-        const header = lines.slice(0, lines.indexOf('<part-list>') + 1).join('\n'); // Everything before <part-list>
+        // Step 2: Extract the <score-part id="P1"> and its content
+        const scorePartStartIndex = originalContent.indexOf('<score-part id="P1">');
+        const scorePartEndIndex = originalContent.indexOf('</score-part>', scorePartStartIndex) + '</score-part>'.length;
+        const scorePartContent = originalContent.substring(scorePartStartIndex, scorePartEndIndex);
 
-        // Create a new Blob with the header content and include it in the new document
-        const headerBlob = new Blob([header], { type: 'application/xml' });
-        const headerLink = document.createElement('a');
-        headerLink.href = URL.createObjectURL(headerBlob);
-        
-        // Step 3: Parse the document content from <part-list> onward
-        const partListElement = xmlDoc.getElementsByTagName('part-list')[0];
-        let child = xmlDoc.documentElement.firstChild;
-        
-        // Copy everything from the original document into the new XML file
-        while (child) {
-          root.appendChild(child.cloneNode(true));
-          if (child === partListElement) {
-            break;  // Stop once we have copied <part-list>
-          }
-          child = child.nextSibling;
-        }
+        // Step 3: Extract the <part id="P1"> and its content
+        const partStartIndex = originalContent.indexOf('<part id="P1">');
+        const partEndIndex = originalContent.indexOf('</part>', partStartIndex) + '</part>'.length;
+        const partContent = originalContent.substring(partStartIndex, partEndIndex);
 
-        // Step 4: Find <score-part id="P1"> and copy it until the next </score-part>
-        const scoreParts = xmlDoc.getElementsByTagName('score-part');
-        for (let i = 0; i < scoreParts.length; i++) {
-          if (scoreParts[i].getAttribute('id') === 'P1') {
-            let scorePartClone = scoreParts[i].cloneNode(true);
-            root.appendChild(scorePartClone);
-            break;
-          }
-        }
+        // Step 4: Combine all the parts into the new XML structure
+        const finalXML = headerContent + scorePartContent + '\n' + partContent + '\n</score-partwise>';
 
-        // Step 5: Add the closing </part-list> tag
-        const partListEndTag = newDoc.createElement('part-list');
-        root.appendChild(partListEndTag);
-
-        // Step 6: Find <part id="P1"> and copy it until the next </part>
-        const parts = xmlDoc.getElementsByTagName('part');
-        for (let i = 0; i < parts.length; i++) {
-          if (parts[i].getAttribute('id') === 'P1') {
-            let partClone = parts[i].cloneNode(true);
-            root.appendChild(partClone);
-            break;
-          }
-        }
-
-        // Step 7: Serialize the new document into a string
-        const serializer = new XMLSerializer();
-        const xmlString = serializer.serializeToString(newDoc);
-
-        // Combine header and content
-        const finalXML = header + xmlString;
-
-        // Create a blob and generate a download link for the new file
+        // Step 5: Create a Blob from the final XML content and generate a download link
         const blob = new Blob([finalXML], { type: 'application/xml' });
         const link = document.createElement('a');
         link.href = URL.createObjectURL(blob);
