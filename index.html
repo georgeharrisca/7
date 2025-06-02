@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Separate MusicXML Parts</title>
+  <script>
+    function parseXML(file) {
+      const reader = new FileReader();
+      reader.onload = function(event) {
+        const parser = new DOMParser();
+        const xmlDoc = parser.parseFromString(event.target.result, "application/xml");
+        
+        // Get all parts from the MusicXML file
+        const parts = xmlDoc.getElementsByTagName('part');
+        
+        // For each part, create a new XML document
+        for (let i = 0; i < parts.length; i++) {
+          let newDoc = document.implementation.createDocument(null, 'score-partwise');
+          let root = newDoc.documentElement;
+
+          // Clone the part element into the new document
+          let partClone = parts[i].cloneNode(true);
+          root.appendChild(partClone);
+
+          // Serialize the new document into a string
+          const serializer = new XMLSerializer();
+          const partXMLString = serializer.serializeToString(newDoc);
+          
+          // Create a blob and generate a download link for the new file
+          const blob = new Blob([partXMLString], { type: 'application/xml' });
+          const link = document.createElement('a');
+          link.href = URL.createObjectURL(blob);
+          link.download = `part_${i + 1}.xml`;
+          link.click();
+        }
+      };
+      reader.readAsText(file);
+    }
+  </script>
+</head>
+<body>
+  <h1>Separate MusicXML Parts</h1>
+  <input type="file" id="xmlFile" accept=".xml, .mxl" />
+  <button onclick="startProcessing()">Separate Parts</button>
+
+  <script>
+    function startProcessing() {
+      const fileInput = document.getElementById('xmlFile');
+      if (fileInput.files.length === 0) {
+        alert('Please select a MusicXML file.');
+        return;
+      }
+
+      const file = fileInput.files[0];
+      parseXML(file);
+    }
+  </script>
+</body>
+</html>
