@@ -11,29 +11,60 @@
         const parser = new DOMParser();
         const xmlDoc = parser.parseFromString(event.target.result, "application/xml");
         
-        // Get all parts from the MusicXML file
-        const parts = xmlDoc.getElementsByTagName('part');
+        // Step 1: Find the <part-list> element
+        const partListElement = xmlDoc.getElementsByTagName('part-list')[0];
         
-        // For each part, create a new XML document
-        for (let i = 0; i < parts.length; i++) {
-          let newDoc = document.implementation.createDocument(null, 'score-partwise');
-          let root = newDoc.documentElement;
+        // Step 2: Create a new document and copy all content up to and including <part-list>
+        let newDoc = document.implementation.createDocument(null, 'score-partwise');
+        let root = newDoc.documentElement;
 
-          // Clone the part element into the new document
-          let partClone = parts[i].cloneNode(true);
-          root.appendChild(partClone);
-
-          // Serialize the new document into a string
-          const serializer = new XMLSerializer();
-          const partXMLString = serializer.serializeToString(newDoc);
-          
-          // Create a blob and generate a download link for the new file
-          const blob = new Blob([partXMLString], { type: 'application/xml' });
-          const link = document.createElement('a');
-          link.href = URL.createObjectURL(blob);
-          link.download = `part_${i + 1}.xml`;
-          link.click();
+        // Step 3: Copy all elements before and including <part-list>
+        let child = xmlDoc.documentElement.firstChild;
+        while (child) {
+          root.appendChild(child.cloneNode(true));
+          if (child === partListElement) {
+            break;  // Stop once we have copied <part-list>
+          }
+          child = child.nextSibling;
         }
+
+        // Step 4: Find <score-part id="P1"> and copy it until the next </score-part>
+        const scoreParts = xmlDoc.getElementsByTagName('score-part');
+        for (let i = 0; i < scoreParts.length; i++) {
+          if (scoreParts[i].getAttribute('id') === 'P1') {
+            let scorePartClone = scoreParts[i].cloneNode(true);
+            root.appendChild(scorePartClone);
+            break;
+          }
+        }
+
+        // Step 5: Add the closing </part-list> tag
+        const partListEndTag = newDoc.createElement('part-list');
+        root.appendChild(partListEndTag);
+
+        // Step 6: Find <part id="P1"> and copy it until the next </part>
+        const parts = xmlDoc.getElementsByTagName('part');
+        for (let i = 0; i < parts.length; i++) {
+          if (parts[i].getAttribute('id') === 'P1') {
+            let partClone = parts[i].cloneNode(true);
+            root.appendChild(partClone);
+            break;
+          }
+        }
+
+        // Step 7: Add the closing </score-partwise> tag
+        // (This is automatically handled by the XML structure since it's the root element)
+
+        // Step 8: Serialize the new document into a string
+        const serializer = new XMLSerializer();
+        const xmlString = serializer.serializeToString(newDoc);
+        
+        // Create a blob and generate a download link for the new file
+        const blob = new Blob([xmlString], { type: 'application/xml' });
+        const link = document.createElement('a');
+        link.href = URL.createObjectURL(blob);
+        link.download = 'extracted_with_part_P1_complete.xml';
+        link.click();
       };
       reader.readAsText(file);
     }
