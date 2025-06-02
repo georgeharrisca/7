@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Separate MusicXML Parts</title>
+  <title>Extract Part 1 from MusicXML</title>
   <script>
     function parseXML(file) {
       const reader = new FileReader();
@@ -63,7 +63,7 @@
         const blob = new Blob([xmlString], { type: 'application/xml' });
         const link = document.createElement('a');
         link.href = URL.createObjectURL(blob);
-        link.download = 'extracted_with_part_P1_complete.xml';
+        link.download = 'part_1_extracted.xml';
         link.click();
       };
       reader.readAsText(file);
@@ -71,9 +71,9 @@
   </script>
 </head>
 <body>
-  <h1>Separate MusicXML Parts</h1>
+  <h1>Extract Part 1 from MusicXML</h1>
   <input type="file" id="xmlFile" accept=".xml, .mxl" />
-  <button onclick="startProcessing()">Separate Parts</button>
+  <button onclick="startProcessing()">Extract Part 1</button>
 
   <script>
     function startProcessing() {
